@@ -1,0 +1,37 @@
+    package com.example.apigateway.filter;
+
+    import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+    import org.springframework.cloud.gateway.filter.GlobalFilter;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.stereotype.Component;
+    import org.springframework.web.server.ServerWebExchange;
+    import reactor.core.publisher.Mono;
+
+    @Component
+    public class JwtAuthenticationFilter implements GlobalFilter {
+
+        @Override
+        public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+            String path = exchange.getRequest().getURI().getPath();
+
+            if(path.contains("/login") || path.contains("/register")) {
+                return chain.filter(exchange);
+            }
+
+            String token = exchange.getRequest().getHeaders().getFirst("Authorization");
+            if(token == null || !token.startsWith("Bearer ")) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            token =  token.substring(7);
+
+            if(token.trim().isEmpty()){
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
+            }
+
+            return chain.filter(exchange);
+        }
+
+    }
