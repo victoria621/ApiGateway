@@ -1,0 +1,97 @@
+services:
+  api-gateway:
+    build: .
+    container_name: api-gateway
+    ports:
+      - "8084:8084"
+    depends_on:
+      - auth-service
+      - user-service
+      - redis
+    environment:
+      - JWT_SECRET=ZWQ4NzIwODQtNWYyNy00ODhmLThkN2MtNzAzMDc3MTQzYWI5ZjZjMWEwNjEtMTBhYS00ZWY3LTljODItYjAzN2VjY2M5ZDRj
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    networks:
+      - microservices-net
+
+  auth-service:
+    build: ../Authentication-Service
+    container_name: auth-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - auth-db
+      - redis
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=mysecretpassword
+      - JWT_SECRET=ZWQ4NzIwODQtNWYyNy00ODhmLThkN2MtNzAzMDc3MTQzYWI5ZjZjMWEwNjEtMTBhYS00ZWY3LTljODItYjAzN2VjY2M5ZDRj
+      - USER_SERVICE_URL=http://user-service:8080
+    networks:
+      - microservices-net
+
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      - POSTGRES_DB=auth_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+
+  user-service:
+    build: ../User-Service/userService
+    container_name: user-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-db
+      - redis
+    environment:
+      - DB_HOST=user-db
+      - DB_PORT=5432
+      - DB_NAME=user_service
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SERVER_PORT=8080
+    networks:
+      - microservices-net
+
+  user-db:
+    image: postgres:15
+    container_name: user-db
+    environment:
+      - POSTGRES_DB=user_service
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - microservices-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  user-db-data:
